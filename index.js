@@ -1,7 +1,9 @@
+require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
+const Phonebook = require('./models/phonebook')
 
 app.use(express.json())
 app.use(cors())
@@ -65,54 +67,51 @@ app.get('/info', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Phonebook.find({}).then(persons => {
+    response.json(persons)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(person => person.id === id)
-  if (person) {
-  	response.json(person)
-  } else {
-  	response.status(404).end()
-  }
+  Phonebook.findById(request.params.id).then(person => {
+    response.json(person)
+  }).catch(err => {
+    response.status(400).json({error: `Could not find a person with id ${request.params.id}.`})
+  })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-
-  response.status(204).end()
+  Phonebook.findByIdAndDelete(request.params.id).then(person => {
+    response.status(204).json(person)
+  }).catch(err => {
+    response.status(400).json({error: `Could not find a person with id ${request.params.id}.`})
+  })
 })
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-  if (!body.name) {
-    return response.status(400).json({ 
-      error: 'Missing name.' 
-    })  	
-  }
-  if (!body.number) {
-    return response.status(400).json({ 
-      error: 'Missing phone number.' 
-    })  	
-  }
-  const nameExists = persons.filter(p => p.name === body.name).length > 0
-  if (nameExists) {
-    return response.status(400).json({ 
-      error: 'Name already exists in the database.'
-    })  	
-  }
 
-  const person = {
-    name: body.name,
-    number: body.number,
-    id: generateId(),
+  if (body.name === undefined) {
+    return response.status(400).json({ error: 'Name is missing.' })
   }
-
-  persons = persons.concat(person)
-
-  response.json(person)
+  if (body.number === undefined) {
+    return response.status(400).json({ error: 'Phone number is missing.' })
+  }
+  // Try to find if a person with the same name exists
+  Phonebook.find({name: body.name}).then(person => {
+    if (person.length > 0) {
+      return response.status(400).json({ error: `Person with name ${person.name} already exists in the database.`})
+    }
+    const newPerson = new Phonebook({
+      name: body.name,
+      number: body.number,
+    })
+  
+    newPerson.save().then(savedPerson => {
+      response.json(savedPerson)
+    })
+  })
+  
 })
 
 const PORT = process.env.PORT || 3001
