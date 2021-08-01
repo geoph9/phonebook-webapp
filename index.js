@@ -1,8 +1,8 @@
 require('dotenv').config()
 const express = require('express')
-const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
+const cors = require('cors')
 const Phonebook = require('./models/phonebook')
 
 app.use(express.json())
@@ -48,12 +48,12 @@ let persons = [
 ]
 
 
-const generateId = () => {
-  const maxId = persons.length > 0
-    ? Math.max(...persons.map(n => n.id))
-    : 0
-  return maxId + 1
-}
+// const generateId = () => {
+//   const maxId = persons.length > 0
+//     ? Math.max(...persons.map(n => n.id))
+//     : 0
+//   return maxId + 1
+// }
 
 app.get('/', (request, response) => {
   response.send('<h1>Phonebook App!</h1>')
