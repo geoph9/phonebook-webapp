@@ -69,31 +69,28 @@ app.get('/info', (request, response) => {
   
 })
 
-// app.put('/api/persons/:id', (request, response) => {
-//   const body = request.body
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
 
-//   if (body.name === undefined) {
-//     return response.status(400).json({ error: 'Name is missing. Cannot update.' })
-//   }
-//   if (body.number === undefined) {
-//     return response.status(400).json({ error: 'Phone number is missing. Cannot update.' })
-//   }
-//   Phonebook.findById(request.params.id).then(person => {
-//     if (person) {
-//       const newPerson = new Phonebook({
-//         name: body.name,
-//         number: body.number,
-//       })
-    
-//       newPerson.save().then(savedPerson => {
-//         response.json(savedPerson)
-//       })
-//     } else {
-//       response.status(404).end()
-//     }
-//   }).catch(error => next(error))
+  if (body.name === undefined || body.name.toString().length === 0) {
+    return response.status(400).json({ error: 'Name is missing.' })
+  }
+  if (body.number === undefined || body.number.toString().length === 0) {
+    return response.status(400).json({ error: 'Phone number is missing.' })
+  }
+  const newPerson = {
+    name: body.name,
+    number: body.number,
+  }
+  // { new: true } will cause our event handler to be called with the 
+  // new modified document instead of the original.
+  Phonebook.findByIdAndUpdate(request.params.id, newPerson, {new: true})
+    .then(updatedPerson => {
+      response.json(updatedPerson)
+    })
+    .catch(error => next(error))
   
-// })
+})
 
 app.get('/api/persons', (request, response) => {
   Phonebook.find({}).then(persons => {
@@ -108,24 +105,28 @@ app.get('/api/persons/:id', (request, response, next) => {
     } else {
       response.status(404).end()
     }
-  }).catch(error => next(error))
+  }).catch(error => {
+    console.log(error)
+    next(error)
+  })
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
   Phonebook.findByIdAndDelete(request.params.id).then(person => {
     response.status(204).json(person)
   }).catch(err => {
-    response.status(400).json({error: `Could not find a person with id ${request.params.id}.`})
+    next(err);
+    // response.status(400).json({error: `Could not find a person with id ${request.params.id}.`})
   })
 })
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
 
-  if (body.name === undefined) {
+  if (body.name === undefined || body.name === '') {
     return response.status(400).json({ error: 'Name is missing.' })
   }
-  if (body.number === undefined) {
+  if (body.number === undefined || body.number === '') {
     return response.status(400).json({ error: 'Phone number is missing.' })
   }
   // Try to find if a person with the same name exists
@@ -148,6 +149,25 @@ app.post('/api/persons', (request, response) => {
   })
   
 })
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+
+// handler of requests with unknown endpoint
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+// this has to be the last loaded middleware.
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
