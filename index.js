@@ -84,7 +84,7 @@ app.put('/api/persons/:id', (request, response, next) => {
   }
   // { new: true } will cause our event handler to be called with the 
   // new modified document instead of the original.
-  Phonebook.findByIdAndUpdate(request.params.id, newPerson, {new: true})
+  Phonebook.findByIdAndUpdate(request.params.id, newPerson, {new: true, runValidators: true})
     .then(updatedPerson => {
       response.json(updatedPerson)
     })

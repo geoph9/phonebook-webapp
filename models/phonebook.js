@@ -21,11 +21,12 @@ const phonebookSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    minLength: 2,
+    minLength: 3,
     unique: true,
   },
   number: {
     type: String,
+    minLength: [8, "Phone number must contain at least 8 digits."],
     required: true,
   },
 })
