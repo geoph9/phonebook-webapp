@@ -120,33 +120,47 @@ app.delete('/api/persons/:id', (request, response, next) => {
   })
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body
 
-  if (body.name === undefined || body.name === '') {
-    return response.status(400).json({ error: 'Name is missing.' })
-  }
-  if (body.number === undefined || body.number === '') {
-    return response.status(400).json({ error: 'Phone number is missing.' })
-  }
-  // Try to find if a person with the same name exists
-  Phonebook.find({name: body.name}).then(person => {
-    console.log(`Found persons: ${person}`)
-    // if (person.length > 0) {
-    //   return response.status(400).json({ error: `Person with name ${person.name} already exists in the database.`})
-    // }
-    const newPerson = new Phonebook({
-      name: body.name,
-      number: body.number,
-    })
-  
-    newPerson.save().then(savedPerson => {
-      response.json(savedPerson)
-    })
-  }).catch(err => {
-    console.log(`Caught error: ${err.message}`)
-    return response.status(400).json({error: `Could not add person with name ${body.name}.`})
+  // if (body.name === undefined || body.name === '') {
+  //   return response.status(400).json({ error: 'Name is missing.' })
+  // }
+  // if (body.number === undefined || body.number === '') {
+  //   return response.status(400).json({ error: 'Phone number is missing.' })
+  // }
+  const newPerson = new Phonebook({
+    name: body.name,
+    number: body.number,
   })
+
+  newPerson.save()
+  .then(savedPerson => savedPerson.toJSON())
+  .then(savedAndFormattedPerson => response.json(savedAndFormattedPerson))
+  .catch(err => {
+    next(err)
+  })
+  // // Try to find if a person with the same name exists
+  // Phonebook.find({name: body.name}).then(person => {
+  //   console.log(`Found persons: ${person}`)
+  //   // if (person.length > 0) {
+  //   //   return response.status(400).json({ error: `Person with name ${person.name} already exists in the database.`})
+  //   // }
+  //   const newPerson = new Phonebook({
+  //     name: body.name,
+  //     number: body.number,
+  //   })
+  
+  //   newPerson.save()
+  //   .then(savedPerson => savedPerson.toJSON())
+  //   .then(savedAndFormattedPerson => response.json(savedAndFormattedPerson))
+  //   .catch(err => {
+  //     next(err)
+  //   })
+  // }).catch(err => {
+  //   console.log(`Caught error: ${err.message}`)
+  //   return response.status(400).json({error: `Could not add person with name ${body.name}.`})
+  // })
   
 })
 
@@ -158,11 +172,13 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
+  // console.error(error.message)
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
 
   next(error)
 }

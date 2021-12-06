@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const uniqueValidator = require('mongoose-unique-validator');
 
 const setupDb = () => {
   const password = process.argv[2]
@@ -12,12 +13,21 @@ const setupDb = () => {
     useCreateIndex: true 
   })
 
-  const noteSchema = new mongoose.Schema({
-    name: String,
-    number: String,
+  const phonebookSchema = new mongoose.Schema({
+    name: {
+      type: String,
+      required: true,
+      minLength: 2,
+      unique: true,
+    },
+    number: {
+      type: String,
+      required: true,
+    },
   })
+  phonebookSchema.plugin(uniqueValidator);
 
-  const Contact = mongoose.model('Contact', noteSchema)
+  const Contact = mongoose.model('Contact', phonebookSchema)
   return Contact
 }
 
